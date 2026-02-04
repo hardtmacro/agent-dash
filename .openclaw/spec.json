@@ -1,0 +1,14 @@
+{
+  "project_name": "agent-dash",
+  "description": "Mission Control dashboard for AI agents - shows agent status, tasks, activity feed, and notifications",
+  "features": [
+    "Agent status cards showing idle/active/blocked state",
+    "Task board with kanban columns (Inbox, Assigned, In Progress, Review, Done)",
+    "Real-time activity feed showing agent actions",
+    "Notification system with @mentions",
+    "Dark theme with warm editorial aesthetic",
+    "Responsive grid layout"
+  ],
+  "ready_to_build": true,
+  "unclear_items": []
+}
