@@ -13,10 +13,12 @@ export type TaskStatus = 'inbox' | 'assigned' | 'inProgress' | 'review' | 'done'
 export interface Agent {
   id: string;
   name: string;
+  role?: string;
   status: AgentStatus;
   tasksCompleted: number;
   lastActive: string;
   avatar: string;
+  currentTask?: string | null;
 }
 
 export interface Task {
@@ -33,6 +35,7 @@ export interface Task {
 export interface Activity {
   id: string;
   agent: string;
+  agentId?: string;
   action: string;
   timestamp: string;
   type: 'task' | 'status' | 'notification';
@@ -47,70 +50,49 @@ export interface Notification {
   agent?: string;
 }
 
-// Mock data
-const mockAgents: Agent[] = [
-  { id: '1', name: 'Data Analyst', status: 'active', tasksCompleted: 24, lastActive: '2026-02-03T14:30:00Z', avatar: 'https://placehold.co/40x40/4f46e5/white?text=DA' },
-  { id: '2', name: 'Content Creator', status: 'idle', tasksCompleted: 18, lastActive: '2026-02-03T10:15:00Z', avatar: 'https://placehold.co/40x40/ec4899/white?text=CC' },
-  { id: '3', name: 'Research Bot', status: 'blocked', tasksCompleted: 32, lastActive: '2026-02-02T16:45:00Z', avatar: 'https://placehold.co/40x40/0ea5e9/white?text=RB' },
-  { id: '4', name: 'Customer Support', status: 'active', tasksCompleted: 42, lastActive: '2026-02-03T18:20:00Z', avatar: 'https://placehold.co/40x40/10b981/white?text=CS' },
-  { id: '5', name: 'Data Processor', status: 'idle', tasksCompleted: 15, lastActive: '2026-02-03T09:30:00Z', avatar: 'https://placehold.co/40x40/f97316/white?text=DP' },
-  { id: '6', name: 'Analytics Engine', status: 'active', tasksCompleted: 56, lastActive: '2026-02-03T17:45:00Z', avatar: 'https://placehold.co/40x40/8b5cf6/white?text=AE' },
-];
-
-const mockTasks: Task[] = [
-  { id: '101', title: 'Analyze quarterly sales data', description: 'Process sales data for Q2 and generate reports', status: 'assigned', assignee: 'Data Analyst', priority: 'high', dueDate: '2026-02-20', tags: ['analytics', 'sales'] },
-  { id: '102', title: 'Create blog content', description: 'Write 3 blog posts about AI trends', status: 'inProgress', assignee: 'Content Creator', priority: 'medium', dueDate: '2026-02-18', tags: ['content', 'blog'] },
-  { id: '103', title: 'Research new AI tools', description: 'Investigate emerging AI tools for our workflow', status: 'inbox', assignee: '', priority: 'medium', tags: ['research', 'tools'] },
-  { id: '104', title: 'Update customer database', description: 'Clean and update customer records', status: 'review', assignee: 'Customer Support', priority: 'low', dueDate: '2026-02-17', tags: ['database', 'cleanup'] },
-  { id: '105', title: 'Generate performance metrics', description: 'Create dashboard with key performance indicators', status: 'done', assignee: 'Analytics Engine', priority: 'high', dueDate: '2026-02-15', tags: ['metrics', 'dashboard'] },
-  { id: '106', title: 'Process user feedback', description: 'Analyze feedback from customer surveys', status: 'assigned', assignee: 'Data Analyst', priority: 'medium', dueDate: '2026-02-22', tags: ['feedback', 'analysis'] },
-  { id: '107', title: 'Prepare data for visualization', description: 'Format data for interactive charts', status: 'inProgress', assignee: 'Data Processor', priority: 'high', dueDate: '2026-02-19', tags: ['data', 'visualization'] },
-  { id: '108', title: 'Optimize API endpoints', description: 'Improve response times for key API calls', status: 'inbox', assignee: '', priority: 'medium', tags: ['api', 'performance'] },
-];
-
-const mockActivities: Activity[] = [
-  { id: 'a1', agent: 'Data Analyst', action: 'completed task "Analyze quarterly sales data"', timestamp: '2026-02-03T14:30:00Z', type: 'task' },
-  { id: 'a2', agent: 'Content Creator', action: 'started task "Create blog content"', timestamp: '2026-02-03T13:45:00Z', type: 'task' },
-  { id: 'a3', agent: 'Customer Support', action: 'updated customer database', timestamp: '2026-02-03T12:20:00Z', type: 'task' },
-  { id: 'a4', agent: 'Analytics Engine', action: 'reported performance metrics', timestamp: '2026-02-03T11:15:00Z', type: 'task' },
-  { id: 'a5', agent: 'Data Analyst', action: 'changed status to active', timestamp: '2026-02-03T10:30:00Z', type: 'status' },
-  { id: 'a6', agent: 'Research Bot', action: 'encountered error processing data', timestamp: '2026-02-02T16:45:00Z', type: 'notification' },
-];
-
-const mockNotifications: Notification[] = [
-  { id: 'n1', message: 'You were mentioned in a task update by Data Analyst', timestamp: '2026-02-03T14:30:00Z', read: false, type: 'mention', agent: 'Data Analyst' },
-  { id: 'n2', message: 'New task assigned: "Prepare data for visualization"', timestamp: '2026-02-03T13:45:00Z', read: true, type: 'system' },
-  { id: 'n3', message: 'Performance alert: Data Processor exceeded CPU limit', timestamp: '2026-02-03T12:20:00Z', read: false, type: 'alert' },
-  { id: 'n4', message: 'Content Creator has completed 5 tasks this week', timestamp: '2026-02-03T11:15:00Z', read: true, type: 'system' },
-];
-
 export default function Home() {
-  const [agents, setAgents] = useState<Agent[]>(mockAgents);
-  const [tasks, setTasks] = useState<Task[]>(mockTasks);
-  const [activities, setActivities] = useState<Activity[]>(mockActivities);
-  const [notifications, setNotifications] = useState<Notification[]>(mockNotifications);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [activities, setActivities] = useState<Activity[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [lastUpdate, setLastUpdate] = useState<string>('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch real data from API
+  const fetchData = async () => {
+    try {
+      const response = await fetch('/api/status');
+      if (!response.ok) throw new Error('Failed to fetch');
+      const data = await response.json();
+
+      setAgents(data.agents || []);
+      setTasks(data.tasks || []);
+      setActivities(data.activities || []);
+      setLastUpdate(data.lastUpdate || '');
+      setError(null);
+    } catch (err) {
+      setError('Failed to load agent data');
+      console.error('Fetch error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Initial fetch and polling
+  useEffect(() => {
+    fetchData();
+
+    // Poll for updates every 30 seconds
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const count = notifications.filter(n => !n.read).length;
     setUnreadCount(count);
   }, [notifications]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (Math.random() > 0.7) {
-        const newActivity: Activity = {
-          id: `a${Date.now()}`,
-          agent: agents[Math.floor(Math.random() * agents.length)].name,
-          action: 'completed a task',
-          timestamp: new Date().toISOString(),
-          type: 'task',
-        };
-        setActivities(prev => [newActivity, ...prev.slice(0, 9)]);
-      }
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [agents]);
 
   const handleTaskStatusChange = (taskId: string, newStatus: TaskStatus) => {
     setTasks(prev => prev.map(task => task.id === taskId ? {...task, status: newStatus} : task));
@@ -135,14 +117,41 @@ export default function Home() {
     setNotifications(prev => prev.map(n => ({...n, read: true})));
   };
 
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-900 text-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-500 mx-auto mb-4"></div>
+          <p className="text-gray-400">Loading agent data...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gray-900 text-gray-100 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
-        <header className="mb-8">
-          <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
-            Agent Dashboard
-          </h1>
-          <p className="text-gray-400 mt-2">Mission Control for AI Agents</p>
+        <header className="mb-8 flex justify-between items-start">
+          <div>
+            <h1 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-indigo-400 to-purple-500 bg-clip-text text-transparent">
+              Agent Dashboard
+            </h1>
+            <p className="text-gray-400 mt-2">Mission Control for AI Agents</p>
+          </div>
+          <div className="text-right">
+            <div className="flex items-center space-x-2">
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+              <span className="text-sm text-gray-400">Live</span>
+            </div>
+            {lastUpdate && (
+              <p className="text-xs text-gray-500 mt-1">
+                Updated: {new Date(lastUpdate).toLocaleTimeString()}
+              </p>
+            )}
+            {error && (
+              <p className="text-xs text-red-400 mt-1">{error}</p>
+            )}
+          </div>
         </header>
 
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
